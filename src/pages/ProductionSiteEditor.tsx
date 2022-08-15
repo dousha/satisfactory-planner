@@ -15,11 +15,14 @@ import HideOnScroll from '../components/HideOnScroll';
 import { ArrowBack, Edit, Power, ReceiptLong } from '@mui/icons-material';
 import { StorageInstance } from '../logic/Storage';
 import { ProductionSite } from '../models/ProductionSite';
+import { randomIdString } from '../util/Random';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 export interface EditorPageProps {
 	id: number;
 
 	loadLandingPage: () => void;
+	loadPipelinePage: (x: number) => void;
 }
 
 export default function ProductionSiteEditor(props: EditorPageProps) {
@@ -39,22 +42,21 @@ export default function ProductionSiteEditor(props: EditorPageProps) {
 
 	const [site, setSite] = useState(savedSite);
 	const [siteName, setSiteName] = useState(site.name);
+
 	const [isNameEditorOpen, setNameEditorOpen] = useState(false);
+	const [isPipelineDeleteOpen, setPipelineDeleteOpen] = useState(false);
+	const [operatingPipeline, setOperatingPipeline] = useState(-1);
 
 	const onNameEditClick = () => {
 		setNameEditorOpen(true);
 	};
 
-	const onNameEditDialogClose = () => {
-		setNameEditorOpen(false);
-	};
-
 	const onNameEditDialogSave = () => {
 		setNameEditorOpen(false);
 		if (siteName.length > 0) {
-			savedSite.name = siteName;
-			setSite(savedSite);
-			StorageInstance.saveSite(props.id, savedSite);
+			const newSite = {...site, name: siteName};
+			setSite(newSite);
+			StorageInstance.saveSite(props.id, newSite);
 			StorageInstance.commit();
 		} else {
 			setSiteName(site.name);
@@ -64,6 +66,47 @@ export default function ProductionSiteEditor(props: EditorPageProps) {
 	const onNameEditDialogCancel = () => {
 		setNameEditorOpen(false);
 		setSiteName(site.name);
+	};
+
+	const onCreateButtonClick = () => {
+		const newSite = {...site, pipelines: site.pipelines.concat([{name: `Pipeline #${randomIdString()}`, stages: []}])}
+		setSite(newSite);
+		StorageInstance.saveSite(props.id, newSite);
+		StorageInstance.commit();
+	};
+
+	const onPipelineEditButtonClick = (x: number) => {
+		return () => {
+			props.loadPipelinePage(x);
+		};
+	};
+
+	const deletePipeline = (x: number) => {
+		const newSite = {...site, pipelines: site.pipelines.filter((it, index) => index !== x)}
+		setSite(newSite);
+		StorageInstance.saveSite(props.id, newSite);
+		StorageInstance.commit();
+	}
+
+	const onPipelineDeleteButtonClick = (x: number) => {
+		return () => {
+			if (site.pipelines[x].stages.length > 0) {
+				setPipelineDeleteOpen(true);
+				setOperatingPipeline(x);
+			} else {
+				deletePipeline(x);
+			}
+		};
+	};
+
+	const onPipelineDeleteConfirm = () => {
+		deletePipeline(operatingPipeline);
+		setOperatingPipeline(-1);
+		setPipelineDeleteOpen(false);
+	};
+
+	const onPipelineDeleteCancel = () => {
+		setPipelineDeleteOpen(false);
 	};
 
 	return (<>
@@ -100,16 +143,22 @@ export default function ProductionSiteEditor(props: EditorPageProps) {
 					</Paper>
 				</Grid>
 
-				{site.pipelines.map((it, index) =>
+				{site.pipelines.length === 0 ?
+					<Grid item>
+						<Typography>Empty pipeline</Typography>
+					</Grid>
+					:
+					site.pipelines.map((it, index) =>
 					<Grid item key={index}>
 						<Card>
 							<CardContent>
-								<Typography>{it.name}</Typography>
+								<Typography variant={'h5'}>{it.name}</Typography>
+								<Typography>Stage count: {it.stages.length}</Typography>
 							</CardContent>
 							<CardActions>
-								<Button>Edit</Button>
+								<Button onClick={onPipelineEditButtonClick(index)}>Edit</Button>
 								<Box sx={{flexGrow: 1}} />
-								<Button>Delete</Button>
+								<Button color={'error'} onClick={onPipelineDeleteButtonClick(index)}>Delete</Button>
 							</CardActions>
 						</Card>
 					</Grid>
@@ -121,13 +170,13 @@ export default function ProductionSiteEditor(props: EditorPageProps) {
 							<Typography variant={'h5'}>New Pipeline</Typography>
 						</CardContent>
 						<CardActions>
-							<Button>Create</Button>
+							<Button onClick={onCreateButtonClick}>Create</Button>
 						</CardActions>
 					</Card>
 				</Grid>
 			</Grid>
 		</Container>
-		<Modal open={isNameEditorOpen} onClose={onNameEditDialogClose}>
+		<Modal open={isNameEditorOpen}>
 			<Container>
 				<Grid container direction={'column'} alignItems={'center'} justifyContent={'center'} sx={{height: '100vh'}}>
 					<Grid item>
@@ -144,5 +193,7 @@ export default function ProductionSiteEditor(props: EditorPageProps) {
 				</Grid>
 			</Container>
 		</Modal>
+
+		<DeleteConfirmModal open={isPipelineDeleteOpen} title={`Deleting ${operatingPipeline >= 0 ? site.pipelines[operatingPipeline].name : '(MISSINGNO.)'}`} description={'Are you sure?'} onConfirm={onPipelineDeleteConfirm} onCancel={onPipelineDeleteCancel} />
 	</>);
 }

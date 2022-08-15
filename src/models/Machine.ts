@@ -12,5 +12,11 @@ export interface Machine {
 }
 
 export const Machines: Machine[] = [
-
+	{
+		name: 'Nop',
+		input: [],
+		output: [],
+		power: 0,
+		cost: []
+	}
 ];
