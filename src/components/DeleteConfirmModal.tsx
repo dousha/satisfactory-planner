@@ -24,7 +24,7 @@ export default function DeleteConfirmModal(props: DeleteConfirmModal) {
 							</CardContent>
 							<CardActions>
 								<Button onClick={props.onCancel}>Cancel</Button>
-								<Button onClick={props.onConfirm}>Delete!</Button>
+								<Button onClick={props.onConfirm} color={'error'}>Delete!</Button>
 							</CardActions>
 						</Card>
 					</Grid>

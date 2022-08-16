@@ -7,16 +7,16 @@ import {
 	Container,
 	CssBaseline,
 	Grid,
-	IconButton, Modal, Paper, TextField,
-	Toolbar,
+	IconButton, Paper, Toolbar,
 	Typography,
 } from '@mui/material';
 import HideOnScroll from '../components/HideOnScroll';
-import { ArrowBack, Edit, Power, ReceiptLong } from '@mui/icons-material';
+import { Analytics, ArrowBack, Edit, Power, ReceiptLong } from '@mui/icons-material';
 import { StorageInstance } from '../logic/Storage';
 import { ProductionSite } from '../models/ProductionSite';
 import { randomIdString } from '../util/Random';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import NameEditDialog from '../components/NameEditDialog';
 
 export interface EditorPageProps {
 	id: number;
@@ -41,7 +41,6 @@ export default function ProductionSiteEditor(props: EditorPageProps) {
 	}
 
 	const [site, setSite] = useState(savedSite);
-	const [siteName, setSiteName] = useState(site.name);
 
 	const [isNameEditorOpen, setNameEditorOpen] = useState(false);
 	const [isPipelineDeleteOpen, setPipelineDeleteOpen] = useState(false);
@@ -51,21 +50,16 @@ export default function ProductionSiteEditor(props: EditorPageProps) {
 		setNameEditorOpen(true);
 	};
 
-	const onNameEditDialogSave = () => {
+	const onNameEditDialogSave = (xs: string) => {
 		setNameEditorOpen(false);
-		if (siteName.length > 0) {
-			const newSite = {...site, name: siteName};
-			setSite(newSite);
-			StorageInstance.saveSite(props.id, newSite);
-			StorageInstance.commit();
-		} else {
-			setSiteName(site.name);
-		}
+		const newSite = {...site, name: xs};
+		setSite(newSite);
+		StorageInstance.saveSite(props.id, newSite);
+		StorageInstance.commit();
 	};
 
 	const onNameEditDialogCancel = () => {
 		setNameEditorOpen(false);
-		setSiteName(site.name);
 	};
 
 	const onCreateButtonClick = () => {
@@ -139,6 +133,9 @@ export default function ProductionSiteEditor(props: EditorPageProps) {
 							<Button startIcon={<Power />}>
 								Power
 							</Button>
+							<Button startIcon={<Analytics />}>
+								Production
+							</Button>
 						</Toolbar>
 					</Paper>
 				</Grid>
@@ -176,23 +173,8 @@ export default function ProductionSiteEditor(props: EditorPageProps) {
 				</Grid>
 			</Grid>
 		</Container>
-		<Modal open={isNameEditorOpen}>
-			<Container>
-				<Grid container direction={'column'} alignItems={'center'} justifyContent={'center'} sx={{height: '100vh'}}>
-					<Grid item>
-						<Card>
-							<CardContent>
-								<TextField label={'Pipeline name'} value={siteName} onChange={e => setSiteName(e.target.value)}></TextField>
-							</CardContent>
-							<CardActions>
-								<Button onClick={onNameEditDialogSave}>Save</Button>
-								<Button onClick={onNameEditDialogCancel}>Cancel</Button>
-							</CardActions>
-						</Card>
-					</Grid>
-				</Grid>
-			</Container>
-		</Modal>
+
+		<NameEditDialog open={isNameEditorOpen} initialValue={site.name} title={'Site name'} onConfirm={onNameEditDialogSave} onCancel={onNameEditDialogCancel} />
 
 		<DeleteConfirmModal open={isPipelineDeleteOpen} title={`Deleting ${operatingPipeline >= 0 ? site.pipelines[operatingPipeline].name : '(MISSINGNO.)'}`} description={'Are you sure?'} onConfirm={onPipelineDeleteConfirm} onCancel={onPipelineDeleteCancel} />
 	</>);

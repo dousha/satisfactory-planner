@@ -19,6 +19,7 @@ import { randomIdString } from '../util/Random';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import MachineCreationModal from '../components/MachineCreationModal';
 import { MachineInstance } from '../models/MachineInstance';
+import NameEditDialog from '../components/NameEditDialog';
 
 export interface PipelineEditorProps {
 	id: number;
@@ -37,6 +38,7 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	const [isStageDeleteDialogOpen, setStageDeleteDialogOpen] = useState(false);
 	const [currentOperatingStage, setCurrentOperatingStage] = useState(-1);
 	const [isMachineCreationDialogOpen, setMachineCreationDialogOpen] = useState(false);
+	const [isStageNameDialogOpen, setStageNameDialogOpen] = useState(false);
 
 	const savePipeline = () => {
 		const newPipeline = {...savedPipeline};
@@ -58,8 +60,9 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 		savePipeline();
 	};
 
-	const onNameDialogSave = () => {
-		savedPipeline.name = pipelineName;
+	const onNameDialogSave = (xs: string) => {
+		savedPipeline.name = xs;
+		setPipelineName(xs);
 		savePipeline();
 		setNameDialogOpen(false);
 	};
@@ -67,6 +70,25 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	const onNameDialogCancel = () => {
 		setPipelineName(pipeline.name);
 		setNameDialogOpen(false);
+	};
+
+	const onStageNameEdit = (x: number) => {
+		return () => {
+			setCurrentOperatingStage(x);
+			setStageNameDialogOpen(true);
+		};
+	};
+
+	const onStageNameDialogSave = (xs: string) => {
+		savedPipeline.stages[currentOperatingStage].name = xs;
+		savePipeline();
+		setCurrentOperatingStage(-1);
+		setStageNameDialogOpen(false);
+	};
+
+	const onStageNameDialogCancel = () => {
+		setCurrentOperatingStage(-1);
+		setStageNameDialogOpen(false);
 	};
 
 	const onStageDeleteClick = (x: number) => {
@@ -157,7 +179,7 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 										<Typography variant={'h5'}>{it.name}</Typography>
 									</Grid>
 									<Grid item>
-										<IconButton>
+										<IconButton onClick={onStageNameEdit(index)}>
 											<Edit />
 										</IconButton>
 									</Grid>
@@ -195,6 +217,10 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 				</Grid>
 			</Grid>
 		</Container>
+
+		<NameEditDialog open={isNameDialogOpen} title={'Pipeline name'} initialValue={pipelineName} onConfirm={onNameDialogSave} onCancel={onNameDialogCancel} />
+
+		<NameEditDialog open={isStageNameDialogOpen} title={'Stage name'} initialValue={currentOperatingStage >= 0 ? pipeline.stages[currentOperatingStage].name : '(MISSINGNO.)'} onConfirm={onStageNameDialogSave} onCancel={onStageNameDialogCancel} />
 
 		<DeleteConfirmModal open={isStageDeleteDialogOpen} title={`Deleting ${currentOperatingStage >= 0 ? pipeline.stages[currentOperatingStage].name : '(MISSINGNO.)'}`} onConfirm={onStageDeleteConfirm} onCancel={onStageDeleteCancel} />
 
