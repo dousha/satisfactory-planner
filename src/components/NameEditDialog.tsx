@@ -12,6 +12,9 @@ export interface NameEditDialogProps {
 
 export default function NameEditDialog(props: NameEditDialogProps) {
 	const [newName, setNewName] = useState(props.initialValue || '');
+	if (typeof props.initialValue === 'string' && props.initialValue !== newName) {
+		setNewName(props.initialValue);
+	}
 
 	const onDialogSave = () => {
 		if (newName.length > 0) {

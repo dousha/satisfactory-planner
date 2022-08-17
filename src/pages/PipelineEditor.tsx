@@ -131,6 +131,8 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 		setMachineCreationDialogOpen(false);
 	};
 
+	const editingStageName = currentOperatingStage >= 0 ? pipeline.stages[currentOperatingStage].name : '(MISSINGNO).';
+
 	return (<>
 		<CssBaseline />
 		<HideOnScroll>
@@ -220,9 +222,9 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 
 		<NameEditDialog open={isNameDialogOpen} title={'Pipeline name'} initialValue={pipelineName} onConfirm={onNameDialogSave} onCancel={onNameDialogCancel} />
 
-		<NameEditDialog open={isStageNameDialogOpen} title={'Stage name'} initialValue={currentOperatingStage >= 0 ? pipeline.stages[currentOperatingStage].name : '(MISSINGNO.)'} onConfirm={onStageNameDialogSave} onCancel={onStageNameDialogCancel} />
+		<NameEditDialog open={isStageNameDialogOpen} title={'Stage name'} initialValue={editingStageName} onConfirm={onStageNameDialogSave} onCancel={onStageNameDialogCancel} />
 
-		<DeleteConfirmModal open={isStageDeleteDialogOpen} title={`Deleting ${currentOperatingStage >= 0 ? pipeline.stages[currentOperatingStage].name : '(MISSINGNO.)'}`} onConfirm={onStageDeleteConfirm} onCancel={onStageDeleteCancel} />
+		<DeleteConfirmModal open={isStageDeleteDialogOpen} title={`Deleting ${editingStageName}`} onConfirm={onStageDeleteConfirm} onCancel={onStageDeleteCancel} />
 
 		<MachineCreationModal open={isMachineCreationDialogOpen} onConfirm={onStageMachineAddConfirm} onCancel={onStageMachineAddCancel} />
 	</>);
