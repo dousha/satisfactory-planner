@@ -39,6 +39,8 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	const [currentOperatingStage, setCurrentOperatingStage] = useState(-1);
 	const [isMachineCreationDialogOpen, setMachineCreationDialogOpen] = useState(false);
 	const [isStageNameDialogOpen, setStageNameDialogOpen] = useState(false);
+	const [currentOperatingMachine, setCurrentOperatingMachine] = useState(-1);
+	const [isClockSpeedPopupOpen, setClockSpeedPopupOpen] = useState(false);
 
 	const savePipeline = () => {
 		const newPipeline = {...savedPipeline};
@@ -125,10 +127,24 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	const onStageMachineAddConfirm = (machine: MachineInstance) => {
 		savedPipeline.stages[currentOperatingStage].machines.push(machine);
 		savePipeline();
+		setMachineCreationDialogOpen(false);
 	};
 
 	const onStageMachineAddCancel = () => {
 		setMachineCreationDialogOpen(false);
+	};
+
+	const onMachineDelete = (stageIndex: number, machineIndex: number) => {
+		return () => {
+			savedPipeline.stages[stageIndex].machines.splice(machineIndex);
+			savePipeline();
+		};
+	};
+
+	const onMachineClockSpeedEdit = (stageIndex: number, machineIndex: number) => {
+		return () => {
+			// TODO
+		};
 	};
 
 	const editingStageName = currentOperatingStage >= 0 ? pipeline.stages[currentOperatingStage].name : '(MISSINGNO).';
@@ -172,8 +188,8 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 						<Typography>Empty pipeline</Typography>
 					</Grid>
 					:
-					pipeline.stages.map((it, index) =>
-					<Grid item key={index}>
+					pipeline.stages.map((it, stageIndex) =>
+					<Grid item key={stageIndex}>
 						<Card>
 							<CardContent>
 								<Grid container direction={'row'} alignItems={'center'} spacing={1}>
@@ -181,25 +197,27 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 										<Typography variant={'h5'}>{it.name}</Typography>
 									</Grid>
 									<Grid item>
-										<IconButton onClick={onStageNameEdit(index)}>
+										<IconButton onClick={onStageNameEdit(stageIndex)}>
 											<Edit />
 										</IconButton>
 									</Grid>
 								</Grid>
-								<Grid container>
+								<Grid container direction={'row'} spacing={1}>
 									{it.machines.length === 0 ?
-										<Typography>No machine.</Typography>
+										<Grid item>
+											<Typography>No machine.</Typography>
+										</Grid>
 										:
-										it.machines.map((it, index) => <Grid item key={index}><MachineView machine={it} /></Grid>)
+										it.machines.map((it, machineIndex) => <Grid item key={machineIndex}><MachineView machine={it} onMachineDelete={onMachineDelete(stageIndex, machineIndex)} onMachineClockSpeedEdit={onMachineClockSpeedEdit(stageIndex, machineIndex)} /></Grid>)
 									}
 								</Grid>
 							</CardContent>
 							<CardActions>
-								<IconButton onClick={onStageMachineAdd(index)}>
+								<IconButton onClick={onStageMachineAdd(stageIndex)}>
 									<Add />
 								</IconButton>
 								<Box sx={{flexGrow: 1}} />
-								<IconButton onClick={onStageDeleteClick(index)}>
+								<IconButton onClick={onStageDeleteClick(stageIndex)}>
 									<Delete />
 								</IconButton>
 							</CardActions>

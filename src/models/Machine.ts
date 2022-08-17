@@ -81,3 +81,7 @@ export const Machines: Machine[] = [
 		]
 	}
 ];
+
+export function getMachineTemplateByName(name: string): Machine | undefined {
+	return Machines.find(x => x.name === name);
+}

@@ -17,4 +17,27 @@ export enum ResourceType {
 	WIRE = 'wire',
 	// Gen 2 productions
 	PORTABLE_MINER = 'portableMiner',
+	SCREW = 'screw',
 }
+
+type EnumDict<U extends string | symbol | number, V> = {
+	[K in U]: V
+};
+
+export const ResourceTypeFriendlyNames: EnumDict<ResourceType, string> = {
+	screw: 'Screw',
+	coal: 'Coal',
+	concrete: 'Concrete',
+	copperIngot: 'Copper ingot',
+	copperOre: 'Copper ore',
+	ironIngot: 'Iron ingot',
+	ironOre: 'Iron ore',
+	ironPlate: 'Iron plate',
+	ironRod: 'Iron rod',
+	limestone: 'Limestone',
+	nothing: '(Nothing)',
+	portableMiner: 'Portable Miner',
+	sulfur: 'Sulfur',
+	water: 'Water',
+	wire: 'Wire'
+};

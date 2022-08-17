@@ -12,8 +12,8 @@ import {
 	Modal,
 	Select, Slider, TextField, Typography,
 } from '@mui/material';
-import { MachineInstance } from '../models/MachineInstance';
-import { Machines } from '../models/Machine';
+import { createMachineInstance, MachineInstance } from '../models/MachineInstance';
+import { getMachineTemplateByName, Machines } from '../models/Machine';
 
 export interface MachineCreationModalProps {
 	open: boolean;
@@ -34,7 +34,13 @@ export default function MachineCreationModal(props: MachineCreationModalProps) {
 	};
 
 	const onDialogConfirm = () => {
-		// TODO
+		const template = getMachineTemplateByName(templateName);
+		if (template != null) {
+			const machine = createMachineInstance(template);
+			machine.name = machineName || template.name;
+			machine.clockSpeed = clockRate;
+			props.onConfirm(machine);
+		}
 		dialogCleanUp();
 	};
 
