@@ -1,7 +1,7 @@
 import React from 'react';
 import { MachineInstance } from '../models/MachineInstance';
-import { Box, Card, CardActions, CardContent, IconButton, Typography } from '@mui/material';
-import { Delete, Edit, Timer } from '@mui/icons-material';
+import { Box, Card, CardActions, CardContent, IconButton, Tooltip, Typography } from '@mui/material';
+import { Delete, Timer } from '@mui/icons-material';
 import { ResourceType, ResourceTypeFriendlyNames } from '../models/ResourceType';
 import { ResourceUtility } from '../models/ResourceUtility';
 
@@ -9,7 +9,7 @@ export interface MachineViewProps {
 	machine: MachineInstance;
 
 	onMachineDelete: () => void;
-	onMachineClockSpeedEdit: () => void;
+	onMachineClockSpeedEdit: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 function toResourceDescription(res: ResourceUtility, clockRate: number) {
@@ -36,13 +36,17 @@ export default function MachineView(props: MachineViewProps) {
 				<Typography>Power: {toActualPower(props.machine.template.power, props.machine.clockSpeed).toFixed(2)} MW</Typography>
 			</CardContent>
 			<CardActions>
-				<IconButton onClick={props.onMachineClockSpeedEdit}>
-					<Timer />
-				</IconButton>
+				<Tooltip title={'Clock speed'} placement={'right'}>
+					<IconButton onClick={props.onMachineClockSpeedEdit}>
+						<Timer />
+					</IconButton>
+				</Tooltip>
 				<Box sx={{flexGrow: 1}} />
-				<IconButton onClick={props.onMachineDelete}>
-					<Delete />
-				</IconButton>
+				<Tooltip title={'Delete'} placement={'left'}>
+					<IconButton onClick={props.onMachineDelete}>
+						<Delete />
+					</IconButton>
+				</Tooltip>
 			</CardActions>
 		</Card>
 	</>);

@@ -7,7 +7,7 @@ import {
 	CssBaseline,
 	Grid,
 	IconButton,
-	Paper,
+	Paper, Popover, Slider,
 	Toolbar,
 	Typography,
 } from '@mui/material';
@@ -41,6 +41,8 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	const [isStageNameDialogOpen, setStageNameDialogOpen] = useState(false);
 	const [currentOperatingMachine, setCurrentOperatingMachine] = useState(-1);
 	const [isClockSpeedPopupOpen, setClockSpeedPopupOpen] = useState(false);
+	const [currentReferencingElement, setCurrentReferencingElement] = useState<HTMLButtonElement | null>(null);
+	const [currentEditingClockSpeed, setCurrentEditingClockSpeed] = useState(1.0);
 
 	const savePipeline = () => {
 		const newPipeline = {...savedPipeline};
@@ -142,10 +144,39 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	};
 
 	const onMachineClockSpeedEdit = (stageIndex: number, machineIndex: number) => {
-		return () => {
-			// TODO
+		return (e: React.MouseEvent<HTMLButtonElement>) => {
+			setCurrentReferencingElement(e.currentTarget);
+			setCurrentOperatingStage(stageIndex);
+			setCurrentOperatingMachine(machineIndex);
+			setCurrentEditingClockSpeed(pipeline.stages[stageIndex].machines[machineIndex].clockSpeed);
+			setClockSpeedPopupOpen(true);
 		};
 	};
+
+	const onMachineClockSpeedEditConfirm = () => {
+		savedPipeline.stages[currentOperatingStage].machines[currentOperatingMachine].clockSpeed = currentEditingClockSpeed;
+		savePipeline();
+		setClockSpeedPopupOpen(false);
+		setCurrentOperatingStage(-1);
+		setCurrentOperatingMachine(-1);
+		setCurrentEditingClockSpeed(1.0);
+		setCurrentReferencingElement(null);
+	};
+
+	const onSliderChange = (e: any, value: number | number[]) => {
+		setCurrentEditingClockSpeed(value as number);
+	};
+
+	const clockRateMarks = [
+		{value: 0.1, label: '10%'},
+		{value: 0.25, label: '25%'},
+		{value: 0.5, label: '50%'},
+		{value: 0.8, label: '80%'},
+		{value: 1.0, label: '100%'},
+		{value: 1.2, label: '120%'},
+		{value: 1.5, label: '150%'},
+		{value: 2.0, label: '200%'},
+	];
 
 	const editingStageName = currentOperatingStage >= 0 ? pipeline.stages[currentOperatingStage].name : '(MISSINGNO).';
 
@@ -245,5 +276,26 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 		<DeleteConfirmModal open={isStageDeleteDialogOpen} title={`Deleting ${editingStageName}`} onConfirm={onStageDeleteConfirm} onCancel={onStageDeleteCancel} />
 
 		<MachineCreationModal open={isMachineCreationDialogOpen} onConfirm={onStageMachineAddConfirm} onCancel={onStageMachineAddCancel} />
+
+		<Popover open={isClockSpeedPopupOpen} anchorEl={currentReferencingElement} anchorOrigin={{vertical: 'bottom', horizontal: 'left'}} transformOrigin={{vertical: 'top', horizontal: 'left'}}>
+			<Box sx={{padding: 2, minWidth: '36em'}}>
+				<Grid container direction={'column'}>
+					<Grid item>
+						<Grid container direction={'row'} justifyContent={'space-between'}>
+							<Grid item>
+								<Typography>Clock rate</Typography>
+							</Grid>
+							<Grid item>
+								<Typography>{Math.floor(currentEditingClockSpeed * 100)}%</Typography>
+							</Grid>
+						</Grid>
+						<Slider value={currentEditingClockSpeed} step={0.01} min={0.01} max={2.5} marks={clockRateMarks} onChange={onSliderChange} />
+					</Grid>
+					<Grid item>
+						<Button onClick={onMachineClockSpeedEditConfirm}>OK</Button>
+					</Grid>
+				</Grid>
+			</Box>
+		</Popover>
 	</>);
 }
