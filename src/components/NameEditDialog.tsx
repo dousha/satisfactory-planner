@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, Card, CardActions, CardContent, Container, Grid, Modal, TextField } from '@mui/material';
 
 export interface NameEditDialogProps {
@@ -12,9 +12,6 @@ export interface NameEditDialogProps {
 
 export default function NameEditDialog(props: NameEditDialogProps) {
 	const [newName, setNewName] = useState(props.initialValue || '');
-	if (typeof props.initialValue === 'string' && props.initialValue !== newName) {
-		setNewName(props.initialValue);
-	}
 
 	const onDialogSave = () => {
 		if (newName.length > 0) {
@@ -30,6 +27,12 @@ export default function NameEditDialog(props: NameEditDialogProps) {
 			onDialogSave();
 		}
 	};
+
+	useEffect(() => {
+		if (props.initialValue != null) {
+			setNewName(props.initialValue);
+		}
+	}, [props.initialValue]);
 
 	return (<>
 		<Modal open={props.open}>
