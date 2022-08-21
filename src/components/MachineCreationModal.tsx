@@ -26,6 +26,7 @@ export default function MachineCreationModal(props: MachineCreationModalProps) {
 	const [templateName, setTemplateName] = useState('');
 	const [machineName, setMachineName] = useState('');
 	const [clockRate, setClockRate] = useState(1.0);
+	const [priority, setPriority] = useState(1);
 
 	const dialogCleanUp = () => {
 		setTemplateName('');
@@ -39,6 +40,7 @@ export default function MachineCreationModal(props: MachineCreationModalProps) {
 			const machine = createMachineInstance(template);
 			machine.name = machineName || template.name;
 			machine.clockSpeed = clockRate;
+			machine.priority = priority;
 			props.onConfirm(machine);
 		}
 		dialogCleanUp();
@@ -82,6 +84,9 @@ export default function MachineCreationModal(props: MachineCreationModalProps) {
 									</Grid>
 									<Grid item>
 										<TextField label={'Machine Name'} value={machineName} placeholder={templateName} onChange={e => setMachineName(e.target.value)} fullWidth></TextField>
+									</Grid>
+									<Grid item>
+										<TextField label={'Priority'} value={priority} placeholder={'1'} type={'number'} fullWidth onChange={e => setPriority(Number(e.target.value))} />
 									</Grid>
 									<Grid item>
 										<Grid container direction={'row'} justifyContent={'space-between'}>

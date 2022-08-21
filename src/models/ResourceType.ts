@@ -20,11 +20,7 @@ export enum ResourceType {
 	SCREW = 'screw',
 }
 
-type EnumDict<U extends string | symbol | number, V> = {
-	[K in U]: V
-};
-
-export const ResourceTypeFriendlyNames: EnumDict<ResourceType, string> = {
+export const ResourceTypeFriendlyNames: Record<ResourceType, string> = {
 	screw: 'Screw',
 	coal: 'Coal',
 	concrete: 'Concrete',

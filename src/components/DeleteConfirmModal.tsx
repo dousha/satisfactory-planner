@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Card, CardActions, CardContent, Container, Grid, Modal, Typography } from '@mui/material';
 
-export interface DeleteConfirmModal {
+export interface DeleteConfirmModalProps {
 	open: boolean;
 	title: string;
 	description?: string;
@@ -11,7 +11,7 @@ export interface DeleteConfirmModal {
 }
 
 
-export default function DeleteConfirmModal(props: DeleteConfirmModal) {
+export default function DeleteConfirmModal(props: DeleteConfirmModalProps) {
 	return (<>
 		<Modal open={props.open} onClose={props.onCancel}>
 			<Container>

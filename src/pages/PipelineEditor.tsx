@@ -2,17 +2,24 @@ import React, { useState } from 'react';
 import {
 	AppBar,
 	Box,
-	Button, Card, CardActions, CardContent,
+	Button,
+	Card,
+	CardActions,
+	CardContent,
 	Container,
 	CssBaseline,
 	Grid,
 	IconButton,
-	Paper, Popover, Slider,
+	Paper,
+	Popover,
+	Slider,
+	TextField,
 	Toolbar,
+	Tooltip,
 	Typography,
 } from '@mui/material';
 import HideOnScroll from '../components/HideOnScroll';
-import { Add, ArrowBack, Delete, Edit, Power, ReceiptLong } from '@mui/icons-material';
+import { Add, ArrowBack, Delete, Edit, Power, ReceiptLong, Warning } from '@mui/icons-material';
 import { StorageInstance } from '../logic/Storage';
 import MachineView from '../components/MachineView';
 import { randomIdString } from '../util/Random';
@@ -20,6 +27,7 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import MachineCreationModal from '../components/MachineCreationModal';
 import { MachineInstance } from '../models/MachineInstance';
 import NameEditDialog from '../components/NameEditDialog';
+import { CalculatedProductionPipeline } from '../models/ProductionPipeline';
 
 export interface PipelineEditorProps {
 	id: number;
@@ -31,6 +39,7 @@ export interface PipelineEditorProps {
 export default function PipelineEditor(props: PipelineEditorProps) {
 	const site = StorageInstance.getProductionSite(props.id);
 	let savedPipeline = site.pipelines[props.line];
+	const calculatedPipeline = new CalculatedProductionPipeline(savedPipeline);
 
 	const [pipeline, setPipeline] = useState(savedPipeline);
 	const [isNameDialogOpen, setNameDialogOpen] = useState(false);
@@ -39,14 +48,19 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	const [currentOperatingStage, setCurrentOperatingStage] = useState(-1);
 	const [isMachineCreationDialogOpen, setMachineCreationDialogOpen] = useState(false);
 	const [isStageNameDialogOpen, setStageNameDialogOpen] = useState(false);
-	const [currentOperatingMachine, setCurrentOperatingMachine] = useState(-1);
+	const [currentOperatingMachine, setCurrentOperatingMachine] = useState('');
 	const [isClockSpeedPopupOpen, setClockSpeedPopupOpen] = useState(false);
 	const [currentReferencingElement, setCurrentReferencingElement] = useState<HTMLButtonElement | null>(null);
 	const [currentEditingClockSpeed, setCurrentEditingClockSpeed] = useState(1.0);
+	const [isPriorityPopupOpen, setPriorityPopupOpen] = useState(false);
+	const [currentEditingPriority, setCurrentEditingPriority] = useState(1);
 
 	const savePipeline = () => {
 		const newPipeline = {...savedPipeline};
-		const newSite = {...site, pipelines: site.pipelines.map((it, index) => index === props.line ? newPipeline : it)};
+		const newSite = {
+			...site,
+			pipelines: site.pipelines.map((it, index) => index === props.line ? newPipeline : it),
+		};
 		setPipeline(newPipeline);
 		StorageInstance.saveSite(props.id, newSite);
 		StorageInstance.commit();
@@ -59,7 +73,7 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	const onCreateClick = () => {
 		savedPipeline.stages.push({
 			name: `New stage #${randomIdString()}`,
-			machines: []
+			machines: [],
 		});
 		savePipeline();
 	};
@@ -98,17 +112,20 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	const onStageDeleteClick = (x: number) => {
 		return () => {
 			if (savedPipeline.stages[x].machines.length < 1) {
-				savedPipeline.stages.splice(x);
+				savedPipeline.stages.splice(x, 1);
+				setCurrentOperatingStage(-1);
+				setCurrentOperatingMachine('');
 				savePipeline();
 			} else {
 				setCurrentOperatingStage(x);
+				setCurrentOperatingMachine('');
 				setStageDeleteDialogOpen(true);
 			}
 		};
 	};
 
 	const onStageDeleteConfirm = () => {
-		savedPipeline.stages.splice(currentOperatingStage);
+		savedPipeline.stages.splice(currentOperatingStage, 1);
 		setCurrentOperatingStage(-1);
 		setStageDeleteDialogOpen(false);
 		savePipeline();
@@ -136,35 +153,60 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 		setMachineCreationDialogOpen(false);
 	};
 
-	const onMachineDelete = (stageIndex: number, machineIndex: number) => {
+	const onMachineDelete = (stageIndex: number, machineId: string) => {
 		return () => {
-			savedPipeline.stages[stageIndex].machines.splice(machineIndex);
+			const machineIndex = savedPipeline.stages[stageIndex].machines.findIndex(it => it.id === machineId);
+			savedPipeline.stages[stageIndex].machines.splice(machineIndex, 1);
 			savePipeline();
 		};
 	};
 
-	const onMachineClockSpeedEdit = (stageIndex: number, machineIndex: number) => {
+	const onMachineClockSpeedEdit = (stageIndex: number, machineId: string) => {
 		return (e: React.MouseEvent<HTMLButtonElement>) => {
+			const machineIndex = pipeline.stages[stageIndex].machines.findIndex(it => it.id === machineId);
 			setCurrentReferencingElement(e.currentTarget);
 			setCurrentOperatingStage(stageIndex);
-			setCurrentOperatingMachine(machineIndex);
+			setCurrentOperatingMachine(machineId);
 			setCurrentEditingClockSpeed(pipeline.stages[stageIndex].machines[machineIndex].clockSpeed);
 			setClockSpeedPopupOpen(true);
 		};
 	};
 
+	const onMachinePriorityEdit = (stageIndex: number, machineId: string) => {
+		return (e: React.MouseEvent<HTMLButtonElement>) => {
+			const machineIndex = pipeline.stages[stageIndex].machines.findIndex(it => it.id === machineId);
+			setCurrentReferencingElement(e.currentTarget);
+			setCurrentOperatingStage(stageIndex);
+			setCurrentOperatingMachine(machineId);
+			setCurrentEditingPriority(pipeline.stages[stageIndex].machines[machineIndex].priority);
+			setPriorityPopupOpen(true);
+		};
+	};
+
 	const onMachineClockSpeedEditConfirm = () => {
-		savedPipeline.stages[currentOperatingStage].machines[currentOperatingMachine].clockSpeed = currentEditingClockSpeed;
+		const machineIndex = savedPipeline.stages[currentOperatingStage].machines.findIndex(it => it.id === currentOperatingMachine);
+		savedPipeline.stages[currentOperatingStage].machines[machineIndex].clockSpeed = currentEditingClockSpeed;
 		savePipeline();
 		setClockSpeedPopupOpen(false);
 		setCurrentOperatingStage(-1);
-		setCurrentOperatingMachine(-1);
+		setCurrentOperatingMachine('');
 		setCurrentEditingClockSpeed(1.0);
 		setCurrentReferencingElement(null);
 	};
 
 	const onSliderChange = (e: any, value: number | number[]) => {
 		setCurrentEditingClockSpeed(value as number);
+	};
+
+	const onMachinePriorityEditConfirm = () => {
+		const machineIndex = savedPipeline.stages[currentOperatingStage].machines.findIndex(it => it.id === currentOperatingMachine);
+		savedPipeline.stages[currentOperatingStage].machines[machineIndex].priority = isNaN(currentEditingPriority) ? 1 : currentEditingPriority;
+		savePipeline();
+		setPriorityPopupOpen(false);
+		setCurrentOperatingStage(-1);
+		setCurrentOperatingMachine('');
+		setCurrentEditingPriority(1);
+		setCurrentReferencingElement(null);
 	};
 
 	const clockRateMarks = [
@@ -181,20 +223,20 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 	const editingStageName = currentOperatingStage >= 0 ? pipeline.stages[currentOperatingStage].name : '(MISSINGNO).';
 
 	return (<>
-		<CssBaseline />
+		<CssBaseline/>
 		<HideOnScroll>
 			<AppBar>
 				<Toolbar>
 					<IconButton onClick={props.loadSitePage}>
-						<ArrowBack sx={{color: 'white'}} />
+						<ArrowBack sx={{color: 'white'}}/>
 					</IconButton>
-					<Box sx={{width: 8}} />
+					<Box sx={{width: 8}}/>
 					<Typography variant={'h6'} component={'div'}>
 						{pipeline.name}
 					</Typography>
-					<Box sx={{width: 4}} />
+					<Box sx={{width: 4}}/>
 					<IconButton onClick={onNameEditClick}>
-						<Edit sx={{color: 'white'}} />
+						<Edit sx={{color: 'white'}}/>
 					</IconButton>
 				</Toolbar>
 			</AppBar>
@@ -204,57 +246,72 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 				<Grid item>
 					<Paper>
 						<Toolbar>
-							<Button startIcon={<ReceiptLong />}>
+							<Button startIcon={<ReceiptLong/>}>
 								BOM
 							</Button>
-							<Button startIcon={<Power />}>
+							<Button startIcon={<Power/>}>
 								Power
 							</Button>
 						</Toolbar>
 					</Paper>
 				</Grid>
 
-				{pipeline.stages.length === 0 ?
+				{calculatedPipeline.stages.length === 0 ?
 					<Grid item>
 						<Typography>Empty pipeline</Typography>
 					</Grid>
 					:
-					pipeline.stages.map((it, stageIndex) =>
-					<Grid item key={stageIndex}>
-						<Card>
-							<CardContent>
-								<Grid container direction={'row'} alignItems={'center'} spacing={1}>
-									<Grid item>
-										<Typography variant={'h5'}>{it.name}</Typography>
-									</Grid>
-									<Grid item>
-										<IconButton onClick={onStageNameEdit(stageIndex)}>
-											<Edit />
-										</IconButton>
-									</Grid>
-								</Grid>
-								<Grid container direction={'row'} spacing={1}>
-									{it.machines.length === 0 ?
+					calculatedPipeline.stages.map((it, stageIndex) =>
+						<Grid item key={stageIndex}>
+							<Card>
+								<CardContent>
+									<Grid container direction={'row'} alignItems={'center'} spacing={1}>
 										<Grid item>
-											<Typography>No machine.</Typography>
+											<Typography variant={'h5'}>{it.name}</Typography>
 										</Grid>
-										:
-										it.machines.map((it, machineIndex) => <Grid item key={machineIndex}><MachineView machine={it} onMachineDelete={onMachineDelete(stageIndex, machineIndex)} onMachineClockSpeedEdit={onMachineClockSpeedEdit(stageIndex, machineIndex)} /></Grid>)
-									}
-								</Grid>
-							</CardContent>
-							<CardActions>
-								<IconButton onClick={onStageMachineAdd(stageIndex)}>
-									<Add />
-								</IconButton>
-								<Box sx={{flexGrow: 1}} />
-								<IconButton onClick={onStageDeleteClick(stageIndex)}>
-									<Delete />
-								</IconButton>
-							</CardActions>
-						</Card>
-					</Grid>
-				)}
+										<Grid item>
+											<IconButton onClick={onStageNameEdit(stageIndex)}>
+												<Edit/>
+											</IconButton>
+										</Grid>
+										<Grid item sx={{flexGrow: 1}}>
+										</Grid>
+										<Grid item>
+											{it.machines.findIndex(it => it.isRunningShort()) >= 0 ?
+												<Tooltip title={'Some machines are not operating at full capacity'}
+														 placement={'left'}>
+													<Warning/>
+												</Tooltip>
+												: null
+											}
+										</Grid>
+									</Grid>
+									<Grid container direction={'row'} spacing={1}>
+										{it.machines.length === 0 ?
+											<Grid item>
+												<Typography>No machine.</Typography>
+											</Grid>
+											:
+											it.machines.map((it, machineIndex) => <Grid item
+																						key={machineIndex}><MachineView
+												machine={it} onMachineDelete={onMachineDelete(stageIndex, it.instance.id)}
+												onMachineClockSpeedEdit={onMachineClockSpeedEdit(stageIndex, it.instance.id)}
+												onMachinePriorityEdit={onMachinePriorityEdit(stageIndex, it.instance.id)}/></Grid>)
+										}
+									</Grid>
+								</CardContent>
+								<CardActions>
+									<IconButton onClick={onStageMachineAdd(stageIndex)}>
+										<Add/>
+									</IconButton>
+									<Box sx={{flexGrow: 1}}/>
+									<IconButton onClick={onStageDeleteClick(stageIndex)}>
+										<Delete/>
+									</IconButton>
+								</CardActions>
+							</Card>
+						</Grid>,
+					)}
 
 				<Grid item>
 					<Card>
@@ -269,15 +326,21 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 			</Grid>
 		</Container>
 
-		<NameEditDialog open={isNameDialogOpen} title={'Pipeline name'} initialValue={pipelineName} onConfirm={onNameDialogSave} onCancel={onNameDialogCancel} />
+		<NameEditDialog open={isNameDialogOpen} title={'Pipeline name'} initialValue={pipelineName}
+						onConfirm={onNameDialogSave} onCancel={onNameDialogCancel}/>
 
-		<NameEditDialog open={isStageNameDialogOpen} title={'Stage name'} initialValue={editingStageName} onConfirm={onStageNameDialogSave} onCancel={onStageNameDialogCancel} />
+		<NameEditDialog open={isStageNameDialogOpen} title={'Stage name'} initialValue={editingStageName}
+						onConfirm={onStageNameDialogSave} onCancel={onStageNameDialogCancel}/>
 
-		<DeleteConfirmModal open={isStageDeleteDialogOpen} title={`Deleting ${editingStageName}`} onConfirm={onStageDeleteConfirm} onCancel={onStageDeleteCancel} />
+		<DeleteConfirmModal open={isStageDeleteDialogOpen} title={`Deleting ${editingStageName}`}
+							onConfirm={onStageDeleteConfirm} onCancel={onStageDeleteCancel}/>
 
-		<MachineCreationModal open={isMachineCreationDialogOpen} onConfirm={onStageMachineAddConfirm} onCancel={onStageMachineAddCancel} />
+		<MachineCreationModal open={isMachineCreationDialogOpen} onConfirm={onStageMachineAddConfirm}
+							  onCancel={onStageMachineAddCancel}/>
 
-		<Popover open={isClockSpeedPopupOpen} anchorEl={currentReferencingElement} anchorOrigin={{vertical: 'bottom', horizontal: 'left'}} transformOrigin={{vertical: 'top', horizontal: 'left'}}>
+		<Popover open={isClockSpeedPopupOpen} anchorEl={currentReferencingElement}
+				 anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}
+				 transformOrigin={{vertical: 'top', horizontal: 'left'}}>
 			<Box sx={{padding: 2, minWidth: '36em'}}>
 				<Grid container direction={'column'}>
 					<Grid item>
@@ -289,10 +352,27 @@ export default function PipelineEditor(props: PipelineEditorProps) {
 								<Typography>{Math.floor(currentEditingClockSpeed * 100)}%</Typography>
 							</Grid>
 						</Grid>
-						<Slider value={currentEditingClockSpeed} step={0.01} min={0.01} max={2.5} marks={clockRateMarks} onChange={onSliderChange} />
+						<Slider value={currentEditingClockSpeed} step={0.01} min={0.01} max={2.5} marks={clockRateMarks}
+								onChange={onSliderChange}/>
 					</Grid>
 					<Grid item>
 						<Button onClick={onMachineClockSpeedEditConfirm}>OK</Button>
+					</Grid>
+				</Grid>
+			</Box>
+		</Popover>
+
+		<Popover open={isPriorityPopupOpen} anchorEl={currentReferencingElement}
+				 anchorOrigin={{vertical: 'bottom', horizontal: 'left'}}
+				 transformOrigin={{vertical: 'top', horizontal: 'left'}}>
+			<Box sx={{padding: 2, minWidth: '9em'}}>
+				<Grid container direction={'column'}>
+					<Grid item>
+						<TextField label={'Priority'} value={currentEditingPriority} placeholder={'1'} type={'number'}
+								   fullWidth onChange={e => setCurrentEditingPriority(Number(e.target.value))}/>
+					</Grid>
+					<Grid item>
+						<Button onClick={onMachinePriorityEditConfirm}>OK</Button>
 					</Grid>
 				</Grid>
 			</Box>

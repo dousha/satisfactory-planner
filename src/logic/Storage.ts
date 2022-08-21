@@ -54,7 +54,7 @@ class Storage {
 	}
 
 	public deleteSite(index: number) {
-		this.productionSites.splice(index);
+		this.productionSites.splice(index, 1);
 	}
 
 	public commit() {
